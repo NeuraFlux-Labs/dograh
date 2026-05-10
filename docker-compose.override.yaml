@@ -53,7 +53,7 @@ services:
       context: .                   # Repo root — ui/Dockerfile COPYs from ui/
       dockerfile: ui/Dockerfile
       args:
-        NODE_MEM_MB: "1536"        # Safe for 4.5GB (RAM+swap) on QA VPS
+        NODE_MEM_MB: "2560"        # Safe for 4.5GB (RAM+swap) on QA VPS
     environment:
       BACKEND_URL: "http://api:8000"
 

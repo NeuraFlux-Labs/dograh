@@ -45,7 +45,7 @@ ENV BACKEND_URL="http://api:8000"
 # Build the application with standalone mode
 # NODE_MEM_MB can be overridden at build-time for memory-constrained hosts
 # (e.g. docker compose build --build-arg NODE_MEM_MB=1536)
-ARG NODE_MEM_MB=4096
+ARG NODE_MEM_MB=2560
 ENV NODE_OPTIONS="--max-old-space-size=${NODE_MEM_MB}"
 RUN npm run build && \
     rm -rf /tmp/* /root/.npm /root/.next/cache
