@@ -61,10 +61,11 @@ pipeline {
             steps {
                 dir("${DEPLOY_DIR}") {
                     sh """
+                        # Enforce memory limits for Next.js build
+                        export NODE_MEM_MB=2560
                         docker compose -p ${COMPOSE_PROJECT} \
                             -f docker-compose.yaml \
-                            -f docker-compose.override.yaml \
-                            build --parallel
+                            build
                     """
                 }
             }
@@ -74,15 +75,8 @@ pipeline {
             steps {
                 dir("${DEPLOY_DIR}") {
                     sh """
-                        # Inject TURN_SECRET into turnserver.conf
-                        if [ -f .env ]; then
-                            source .env
-                            sed -i "s/REPLACE_WITH_TURN_SECRET/\${TURN_SECRET}/g" deploy/turnserver.conf
-                        fi
-
                         docker compose -p ${COMPOSE_PROJECT} \
                             -f docker-compose.yaml \
-                            -f docker-compose.override.yaml \
                             --env-file .env \
                             up -d --remove-orphans
                     """
