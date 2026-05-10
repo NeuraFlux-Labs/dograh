@@ -43,8 +43,10 @@ ENV NEXT_PUBLIC_CHATWOOT_TOKEN="3fkFx2mCEjNHjM9gaNc4A82X"
 ENV BACKEND_URL="http://api:8000"
 
 # Build the application with standalone mode
-# Increase Node.js heap size to prevent out-of-memory errors during build
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# NODE_MEM_MB can be overridden at build-time for memory-constrained hosts
+# (e.g. docker compose build --build-arg NODE_MEM_MB=1536)
+ARG NODE_MEM_MB=4096
+ENV NODE_OPTIONS="--max-old-space-size=${NODE_MEM_MB}"
 RUN npm run build && \
     rm -rf /tmp/* /root/.npm /root/.next/cache
 

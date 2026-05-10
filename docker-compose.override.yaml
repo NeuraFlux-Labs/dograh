@@ -1,0 +1,78 @@
+# =============================================================================
+# QA VPS Overrides — voice.salespyper.com
+# =============================================================================
+# Applied alongside docker-compose.yaml to avoid port conflicts with existing
+# services on the SalesPyper QA server (68.168.218.136).
+#
+# Existing services NOT to be disturbed:
+#   - Host PostgreSQL on port 5432
+#   - Host MinIO on port 9091 (qa-files.salespyper.com)
+#   - Nginx Proxy Manager on ports 80, 443, 81
+#   - Jenkins on port 8081 (qajenkins.salespyper.com)
+#   - MongoDB on port 27017
+# =============================================================================
+
+services:
+  # ---- Infrastructure: remap host ports to avoid conflicts ----
+
+  postgres:
+    ports:
+      - "5433:5432"               # Host 5432 is taken by existing PostgreSQL
+
+  redis:
+    ports:
+      - "6380:6379"               # Avoid potential conflicts
+
+  minio:
+    ports:
+      - "127.0.0.1:9002:9000"    # MinIO API — internal only, behind NPM proxy
+      - "127.0.0.1:9003:9001"    # MinIO Console — internal only
+
+  # ---- Application services ----
+
+  api:
+    build:
+      context: .                   # Repo root — api/Dockerfile COPYs pipecat/ from root
+      dockerfile: api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      # NOTE: cloudflared removed — replaced with no-op stub (see below)
+    environment:
+      ENVIRONMENT: "production"
+      BACKEND_API_ENDPOINT: "https://voice.salespyper.com"
+      MINIO_PUBLIC_ENDPOINT: "https://voice.salespyper.com"
+      ENABLE_TELEMETRY: "false"
+
+  ui:
+    build:
+      context: .                   # Repo root — ui/Dockerfile COPYs from ui/
+      dockerfile: ui/Dockerfile
+      args:
+        NODE_MEM_MB: "1536"        # Safe for 4.5GB (RAM+swap) on QA VPS
+    environment:
+      BACKEND_URL: "http://api:8000"
+
+  # ---- TURN server: enable for WebRTC voice reliability ----
+
+  coturn:
+    profiles: []                   # Override "remote" profile — always run on QA
+    volumes:
+      - /opt/dograh/deploy/turnserver.conf:/etc/coturn/turnserver.conf:ro
+
+  # ---- Disabled services ----
+
+  # cloudflared is replaced with a no-op stub so the upstream api depends_on
+  # condition (service_started) is satisfied without a Cloudflare tunnel token.
+  cloudflared:
+    image: alpine:3.19
+    container_name: cloudflared-stub
+    command: ["echo", "cloudflared disabled on QA VPS — using NPM + DNS"]
+    restart: "no"
+
+  nginx:
+    profiles: ["disabled"]        # NPM handles TLS termination on 80/443
