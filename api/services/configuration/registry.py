@@ -34,6 +34,7 @@ class ServiceProviders(str, Enum):
     RIME = "rime"
     OPENAI_REALTIME = "openai_realtime"
     GOOGLE_REALTIME = "google_realtime"
+    SAGEMAKER = "sagemaker"
 
 
 class BaseServiceConfiguration(BaseModel):
@@ -271,6 +272,19 @@ class AWSBedrockLLMConfiguration(BaseLLMConfiguration):
     api_key: str | list[str] | None = Field(default=None)
 
 
+@register_llm
+class SageMakerLLMConfiguration(BaseLLMConfiguration):
+    provider: Literal[ServiceProviders.SAGEMAKER] = ServiceProviders.SAGEMAKER
+    endpoint_name: str = Field(description="Name of the SageMaker endpoint")
+    region_name: str = Field(default="us-east-1")
+    aws_access_key_id: str = Field(default="", description="Optional AWS Access Key")
+    aws_secret_access_key: str = Field(default="", description="Optional AWS Secret Key")
+    model_kwargs: Dict = Field(
+        default_factory=dict, description="Additional parameters for the model"
+    )
+    api_key: str | list[str] | None = Field(default=None)
+
+
 SPEACHES_LLM_MODELS = ["llama3", "mistral", "phi3", "qwen2", "gemma2", "deepseek-r1"]
 
 
@@ -397,6 +411,7 @@ LLMConfig = Annotated[
         DograhLLMService,
         AWSBedrockLLMConfiguration,
         SpeachesLLMConfiguration,
+        SageMakerLLMConfiguration,
     ],
     Field(discriminator="provider"),
 ]
@@ -642,6 +657,19 @@ class SpeachesTTSConfiguration(BaseTTSConfiguration):
     api_key: str | list[str] | None = Field(default=None)
 
 
+@register_tts
+class SageMakerTTSConfiguration(BaseServiceConfiguration):
+    provider: Literal[ServiceProviders.SAGEMAKER] = ServiceProviders.SAGEMAKER
+    endpoint_name: str = Field(description="Name of the SageMaker endpoint")
+    region_name: str = Field(default="us-east-1")
+    aws_access_key_id: str = Field(default="", description="Optional AWS Access Key")
+    aws_secret_access_key: str = Field(default="", description="Optional AWS Secret Key")
+    language_code: str = Field(default="hi-IN")
+    voice_id: str = Field(default="default")
+    model_kwargs: Dict = Field(default_factory=dict)
+    api_key: str | list[str] | None = Field(default=None)
+
+
 TTSConfig = Annotated[
     Union[
         DeepgramTTSConfiguration,
@@ -653,6 +681,7 @@ TTSConfig = Annotated[
         CambTTSConfiguration,
         RimeTTSConfiguration,
         SpeachesTTSConfiguration,
+        SageMakerTTSConfiguration,
     ],
     Field(discriminator="provider"),
 ]
@@ -1022,6 +1051,18 @@ class GladiaSTTConfiguration(BaseSTTConfiguration):
     )
 
 
+@register_stt
+class SageMakerSTTConfiguration(BaseSTTConfiguration):
+    provider: Literal[ServiceProviders.SAGEMAKER] = ServiceProviders.SAGEMAKER
+    endpoint_name: str = Field(description="Name of the SageMaker endpoint")
+    region_name: str = Field(default="us-east-1")
+    aws_access_key_id: str = Field(default="", description="Optional AWS Access Key")
+    aws_secret_access_key: str = Field(default="", description="Optional AWS Secret Key")
+    language_code: str = Field(default="hi-IN")
+    model_kwargs: Dict = Field(default_factory=dict)
+    api_key: str | list[str] | None = Field(default=None)
+
+
 STTConfig = Annotated[
     Union[
         DeepgramSTTConfiguration,
@@ -1033,6 +1074,7 @@ STTConfig = Annotated[
         SpeachesSTTConfiguration,
         AssemblyAISTTConfiguration,
         GladiaSTTConfiguration,
+        SageMakerSTTConfiguration,
     ],
     Field(discriminator="provider"),
 ]

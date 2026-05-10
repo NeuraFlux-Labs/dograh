@@ -41,6 +41,9 @@ from pipecat.services.sarvam.tts import SarvamTTSService, SarvamTTSSettings
 from pipecat.services.speaches.llm import SpeachesLLMService, SpeachesLLMSettings
 from pipecat.services.speaches.stt import SpeachesSTTService, SpeachesSTTSettings
 from pipecat.services.speaches.tts import SpeachesTTSService, SpeachesTTSSettings
+from api.services.pipecat.sagemaker.llm import SageMakerLLMService
+from api.services.pipecat.sagemaker.tts import SageMakerTTSService
+from api.services.pipecat.sagemaker.stt import SageMakerSTTService
 from pipecat.services.speechmatics.stt import (
     SpeechmaticsSTTService,
     SpeechmaticsSTTSettings,
@@ -205,6 +208,16 @@ def create_stt_service(
                 operating_point=operating_point,
                 additional_vocab=additional_vocab,
             ),
+            sample_rate=audio_config.transport_in_sample_rate,
+        )
+    elif user_config.stt.provider == ServiceProviders.SAGEMAKER.value:
+        return SageMakerSTTService(
+            endpoint_name=user_config.stt.endpoint_name,
+            region_name=user_config.stt.region_name,
+            aws_access_key_id=user_config.stt.aws_access_key_id,
+            aws_secret_access_key=user_config.stt.aws_secret_access_key,
+            language_code=user_config.stt.language_code,
+            model_kwargs=user_config.stt.model_kwargs,
             sample_rate=audio_config.transport_in_sample_rate,
         )
     else:
@@ -385,6 +398,17 @@ def create_tts_service(user_config, audio_config: "AudioConfig"):
             skip_aggregator_types=["recording_router", "recording"],
             silence_time_s=1.0,
         )
+    elif user_config.tts.provider == ServiceProviders.SAGEMAKER.value:
+        return SageMakerTTSService(
+            endpoint_name=user_config.tts.endpoint_name,
+            region_name=user_config.tts.region_name,
+            aws_access_key_id=user_config.tts.aws_access_key_id,
+            aws_secret_access_key=user_config.tts.aws_secret_access_key,
+            language_code=user_config.tts.language_code,
+            voice_id=user_config.tts.voice_id,
+            model_kwargs=user_config.tts.model_kwargs,
+            sample_rate=audio_config.transport_out_sample_rate,
+        )
     else:
         raise HTTPException(
             status_code=400, detail=f"Invalid TTS provider {user_config.tts.provider}"
@@ -463,6 +487,15 @@ def create_llm_service_from_provider(
             base_url=base_url or "http://localhost:11434/v1",
             api_key=api_key or "none",
             settings=SpeachesLLMSettings(model=model),
+        )
+    elif provider == ServiceProviders.SAGEMAKER.value:
+        # SageMaker settings are passed directly via create_llm_service/kwargs
+        return SageMakerLLMService(
+            endpoint_name=kwargs.get("endpoint_name"),
+            region_name=kwargs.get("region_name", "us-east-1"),
+            aws_access_key_id=kwargs.get("aws_access_key_id"),
+            aws_secret_access_key=kwargs.get("aws_secret_access_key"),
+            model_kwargs=kwargs.get("model_kwargs"),
         )
     else:
         raise HTTPException(status_code=400, detail=f"Invalid LLM provider {provider}")
@@ -549,5 +582,11 @@ def create_llm_service(user_config):
         kwargs["aws_access_key"] = user_config.llm.aws_access_key
         kwargs["aws_secret_key"] = user_config.llm.aws_secret_key
         kwargs["aws_region"] = user_config.llm.aws_region
+    elif provider == ServiceProviders.SAGEMAKER.value:
+        kwargs["endpoint_name"] = user_config.llm.endpoint_name
+        kwargs["region_name"] = user_config.llm.region_name
+        kwargs["aws_access_key_id"] = user_config.llm.aws_access_key_id
+        kwargs["aws_secret_access_key"] = user_config.llm.aws_secret_access_key
+        kwargs["model_kwargs"] = user_config.llm.model_kwargs
 
     return create_llm_service_from_provider(provider, model, api_key, **kwargs)
