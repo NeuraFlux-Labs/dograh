@@ -90,4 +90,9 @@ if (process.env.NEXT_PUBLIC_NODE_ENV !== 'development') {
 }
 
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// Only export the Sentry router hook if Sentry is actually configured with a DSN.
+// Without this guard, the hook wires into Next.js router lifecycle unconditionally
+// and causes a client-side crash when Sentry is not initialized.
+export const onRouterTransitionStart = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? Sentry.captureRouterTransitionStart
+  : undefined;
